@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -10,6 +11,8 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
+	"io"
+	"net/http"
 )
 
 type DiskUsage struct {
@@ -84,5 +87,28 @@ func main() {
 		fmt.Println(err)
 	}
 
-	fmt.Println(string(jsonDevice))
+	//fmt.Println(string(jsonDevice))
+
+	// Create a new HTTP request
+	req, err := http.NewRequest("POST", "https://example.com/your-endpoint", bytes.NewBuffer(jsonDevice))
+	if err != nil {
+		fmt.Println("Error creating HTTP request:", err)
+		return
+	}
+
+	// Set the Content-Type header
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println("Error sending HTTP request:", err)
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 }
