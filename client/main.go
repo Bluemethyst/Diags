@@ -12,7 +12,9 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
 	"io"
+	"log"
 	"net/http"
+	"time"
 )
 
 type DiskUsage struct {
@@ -25,10 +27,15 @@ type DiskUsage struct {
 }
 
 type Device struct {
+	Name      string
+	Uptime    uint64
+	LocalTime time.Time
 	OS        string
 	Platform  string
-	RAM       int
-	RamInUse  int
+	CPUUsage  float64
+	RAM       uint64
+	RAMInUse  uint64
+	RAMUsage  float64
 	Disks     []DiskUsage
 	Battery   int
 	CPUInfo   []cpu.InfoStat
@@ -44,8 +51,9 @@ func main() {
 
 	// Get memory info
 	memoryStat, _ := mem.VirtualMemory()
-	device.RAM = int(memoryStat.Total / 1024 / 1024)
-	device.RamInUse = int(memoryStat.Used / 1024 / 1024)
+	device.RAM = memoryStat.Total / 1024 / 1024
+	device.RAMInUse = memoryStat.Used / 1024 / 1024
+	device.RAMUsage = memoryStat.UsedPercent
 
 	// Get network info
 	netStat, _ := net.IOCounters(true)
@@ -69,46 +77,47 @@ func main() {
 	hostStat, _ := host.Info()
 	device.OS = hostStat.OS
 	device.Platform = hostStat.Platform
+	device.Name = hostStat.Hostname
+	device.Uptime = hostStat.Uptime
+	device.LocalTime = time.Now()
 
 	// Get CPU info
 	cpuStat, _ := cpu.Info()
 	device.CPUInfo = cpuStat
-
-	// Get load average
+	cpuUsage, _ := cpu.Percent(0, false)
+	if len(cpuUsage) > 0 {
+		device.CPUUsage = cpuUsage[0]
+	}
 	if device.OS != "windows" {
 		loadAvg, _ := load.Avg()
 		device.LoadAvg = loadAvg
 	} else {
 		device.LoadAvg = nil
 	}
-
+	
 	jsonDevice, err := json.MarshalIndent(device, "", "  ")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	//fmt.Println(string(jsonDevice))
-
-	// Create a new HTTP request
-	req, err := http.NewRequest("POST", "https://example.com/your-endpoint", bytes.NewBuffer(jsonDevice))
+	resp, err := http.Post("http://localhost:5000/upload_stats", "application/json", bytes.NewBuffer(jsonDevice))
 	if err != nil {
-		fmt.Println("Error creating HTTP request:", err)
-		return
-	}
-
-	// Set the Content-Type header
-	req.Header.Set("Content-Type", "application/json")
-
-	// Send the request
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println("Error sending HTTP request:", err)
-		return
+		log.Fatalln(err)
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-
+			fmt.Println("Error closing response body:", err)
 		}
 	}(resp.Body)
+
+	if resp.StatusCode != 200 {
+		log.Fatalln("Error: Status code is not 200")
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(string(body))
 }
