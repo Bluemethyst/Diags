@@ -1,6 +1,5 @@
 from flask import Flask, request
 from flask_cors import CORS
-import sqlite3
 import json
 
 app = Flask(__name__)
@@ -8,7 +7,7 @@ CORS(app)
 
 
 @app.route('/')
-def hello_world():
+def root():
     return {"status_code": 200, "message": "you shouldn't be here :)"}
 
 
@@ -21,6 +20,8 @@ def add_post():
             content = request.json
             print(json.dumps(content, indent=4))
             print(request.remote_addr)
+            with open(request.remote_addr + '.json', 'w') as f:
+                json.dump(content, f, indent=4)
             return {"status_code": 200, "message": "success, post added"}, 200
         except Exception as e:
             print(e)
