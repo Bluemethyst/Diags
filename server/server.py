@@ -19,7 +19,6 @@ def add_post():
         try:
             content = request.json
             print(json.dumps(content, indent=4))
-            print(request.remote_addr)
             with open(request.remote_addr + '.json', 'w') as f:
                 json.dump(content, f, indent=4)
             return {"status_code": 200, "message": "success, post added"}, 200
@@ -34,4 +33,4 @@ def page_not_found(e):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True)
