@@ -1,2 +1,2 @@
-server/*.json
+server/data/*.json
 server/test/test.py

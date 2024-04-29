@@ -94,13 +94,13 @@ func main() {
 	} else {
 		device.LoadAvg = nil
 	}
-	
+
 	jsonDevice, err := json.MarshalIndent(device, "", "  ")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp, err := http.Post("http://localhost:5000/upload_stats", "application/json", bytes.NewBuffer(jsonDevice))
+	resp, err := http.Post("http://localhost:5000/api/upload_stats", "application/json", bytes.NewBuffer(jsonDevice))
 	if err != nil {
 		log.Fatalln(err)
 	}
